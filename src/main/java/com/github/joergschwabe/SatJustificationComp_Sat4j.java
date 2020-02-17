@@ -110,53 +110,75 @@ public class SatJustificationComp_Sat4j<C, I extends Inference<? extends C>, A>
 		}
 
 		private void compute() throws ContradictionException, TimeoutException, ParserException, IOException {
-			ISolver solver = satClauseHandler_.getISolver();
-
-			Set<Integer> axiomSet;
-			Set<Integer> conclusionSet;
-			Set<Inference<? extends Integer>> inferenceSet;
-			Set<Integer> justification_int;
-			Set<A> justification;
-			
-			while (solver.isSatisfiable()) {
-				int[] list = solver.model();
+			final ISolver solver = satClauseHandler_.getISolver();
+			Thread interruptMonitor = new Thread(new Runnable() {
 				
-				axiomSet = satClauseHandler_.getPositiveOntologieAxioms(list);
-
-				if(satClauseHandler_.isQueryDerivable(axiomSet)) {
-					if(axiomSet.isEmpty()) {
-						listener_.newMinimalSubset(new HashSet<A>());
-						break;
-					}
+				@Override
+				public void run() {
+					for (;;) {
+						if (isInterrupted()) {
+							solver.expireTimeout();
+							Thread.currentThread().interrupt();
+						}						
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							return;
+						}						
+					}					
+				}
+			});
+			interruptMonitor.start();
+			try {				
+				Set<Integer> axiomSet;
+				Set<Integer> conclusionSet;
+				Set<Inference<? extends Integer>> inferenceSet;
+				Set<Integer> justification_int;
+				Set<A> justification;
+				
+				while (solver.isSatisfiable()) {	
+					int[] list = solver.model();
 					
-					justification_int = satClauseHandler_.computeJustification(axiomSet);
+					axiomSet = satClauseHandler_.getPositiveOntologieAxioms(list);
 
-					try {
-						satClauseHandler_.pushNegClauseToSolver(justification_int);
-					} catch (ContradictionException e) {
+					if(satClauseHandler_.isQueryDerivable(axiomSet)) {
+						if(axiomSet.isEmpty()) {
+							listener_.newMinimalSubset(new HashSet<A>());
+							break;
+						}
+						
+						justification_int = satClauseHandler_.computeJustification(axiomSet);
+
+						try {
+							satClauseHandler_.pushNegClauseToSolver(justification_int);
+						} catch (ContradictionException e) {
+							justification = satClauseHandler_.translateToAxioms(justification_int);
+
+							listener_.newMinimalSubset(justification);
+							
+							break;
+						}					
+
 						justification = satClauseHandler_.translateToAxioms(justification_int);
 
 						listener_.newMinimalSubset(justification);
-						
+					} else {
+						conclusionSet = satClauseHandler_.getPositiveConclusions(list);
+
+						inferenceSet = satClauseHandler_.getPositiveInferences(list);
+
+						Set<Inference<? extends Integer>> cycle = cycleComputator.getCycle(conclusionSet, inferenceSet);
+
+						satClauseHandler_.addCycleClause(cycle);
+					}
+
+					if (isInterrupted()) {
 						break;
-					}					
+					}
+				}				
 
-					justification = satClauseHandler_.translateToAxioms(justification_int);
-
-					listener_.newMinimalSubset(justification);
-				} else {
-					conclusionSet = satClauseHandler_.getPositiveConclusions(list);
-
-					inferenceSet = satClauseHandler_.getPositiveInferences(list);
-
-					Set<Inference<? extends Integer>> cycle = cycleComputator.getCycle(conclusionSet, inferenceSet);
-
-					satClauseHandler_.addCycleClause(cycle);
-				}
-
-				if (isInterrupted()) {
-					break;
-				}
+			} finally {
+				interruptMonitor.interrupt();				
 			}
 		}
 
