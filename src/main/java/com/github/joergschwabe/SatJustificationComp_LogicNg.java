@@ -17,6 +17,7 @@ import org.liveontologies.puli.pinpointing.PriorityComparator;
 import org.logicng.datastructures.Assignment;
 import org.logicng.datastructures.Tristate;
 import org.logicng.formulas.FormulaFactory;
+import org.logicng.handlers.SATHandler;
 import org.logicng.io.parsers.ParserException;
 import org.logicng.solvers.MiniSat;
 import org.logicng.solvers.SATSolver;
@@ -113,8 +114,35 @@ public class SatJustificationComp_LogicNg<C, I extends Inference<? extends C>, A
 			Set<A> justification;
 
 			SATSolver solver = satClauseHandler_.getSATSolver();
+			
+			SATHandler interruptHandler = new SATHandler() {
+				
+				@Override
+				public void started() {
+				}
+				
+				@Override
+				public boolean aborted() {
+					return false;
+				}
+				
+				@Override
+				public void finishedSolving() {
+				}
+				
+				@Override
+				public boolean detectedConflict() {
+					return !isInterrupted();
+				}
+			};
+			
 
-			while (solver.sat() == Tristate.TRUE) {
+			while (solver.sat(interruptHandler) == Tristate.TRUE) {
+				
+				if (isInterrupted()) {
+					break;
+				}
+
 				Assignment model = solver.model();
 
 				axiomSet = satClauseHandler_.getPositiveOntologieAxioms(model);
@@ -147,9 +175,6 @@ public class SatJustificationComp_LogicNg<C, I extends Inference<? extends C>, A
 					satClauseHandler_.addCycleClause(cycle);
 				}
 
-				if (isInterrupted()) {
-					break;
-				}
 			}			
 		}
 
