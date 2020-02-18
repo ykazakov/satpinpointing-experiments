@@ -31,19 +31,30 @@ import org.liveontologies.puli.Inference;
 import org.liveontologies.puli.pinpointing.MinimalSubsetsFromProofs;
 
 @RunWith(Parameterized.class)
-public class SatJustification_Sat4jTest<C, I extends Inference<? extends C>, A> extends BaseEnumeratorTest<C, I, A> {
+public class SatJustification_Sat4jTest<C, I extends Inference<? extends C>, A>
+		extends BaseEnumeratorTest<C, I, A> {
 
 	public static final String TEST_INPUT_SUBPKG = "input.justifications";
 
 	public static List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> getJustificationEnumeratorFactories() {
-		final List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> factories = new ArrayList<MinimalSubsetsFromProofs.Factory<?, ?, ?>>();
+		final List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> factories = new ArrayList<MinimalSubsetsFromProofs.Factory<?, ?, ?>>();		
+		factories.add(SatJustificationComp_Sat4j_bestHT.getFactory());
+		factories.add(SatJustificationComp_Sat4j_bestWL.getFactory());
+		factories.add(SatJustificationComp_Sat4j_glucose.getFactory());
+		factories.add(SatJustificationComp_Sat4j_glucose21.getFactory());
+		factories.add(SatJustificationComp_Sat4j_greedy.getFactory());
+		factories.add(SatJustificationComp_Sat4j_light.getFactory());
+		factories.add(SatJustificationComp_Sat4j_miniLearningHeap.getFactory());
+		factories.add(SatJustificationComp_Sat4j_miniSATHeap.getFactory());
+		factories.add(SatJustificationComp_Sat4j_SAT.getFactory());
 		factories.add(SatJustificationComp_Sat4j.getFactory());
 		return factories;
 	}
 
 	@Parameters(name = "{index}: {0}")
 	public static Iterable<Object[]> data() throws Exception {
-		return getParameters(getJustificationEnumeratorFactories(), TEST_INPUT_SUBPKG);
+		return getParameters(getJustificationEnumeratorFactories(),
+				TEST_INPUT_SUBPKG);
 	}
 
 }
