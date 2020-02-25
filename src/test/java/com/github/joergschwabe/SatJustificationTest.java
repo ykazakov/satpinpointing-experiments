@@ -1,3 +1,4 @@
+package com.github.joergschwabe;
 /*-
  * #%L
  * Proof Utility Library
@@ -19,7 +20,6 @@
  * limitations under the License.
  * #L%
  */
-package com.github.joergschwabe;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,19 +31,28 @@ import org.liveontologies.puli.Inference;
 import org.liveontologies.puli.pinpointing.MinimalSubsetsFromProofs;
 
 @RunWith(Parameterized.class)
-public class SatRepair_Sat4jTest<C, I extends Inference<? extends C>, A> extends BaseEnumeratorTest<C, I, A> {
+public class SatJustificationTest<C, I extends Inference<? extends C>, A>
+		extends BaseEnumeratorTest<C, I, A> {
 
-	public static final String TEST_INPUT_SUBPKG = "input.repairs";
+	public static final String TEST_INPUT_SUBPKG = "input.justifications";
 
-	public static List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> getRepairEnumeratorFactories() {
+	public static List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> getSatJustificationComputationFactories() {
 		final List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> factories = new ArrayList<MinimalSubsetsFromProofs.Factory<?, ?, ?>>();
-		factories.add(SatRepairComp_Sat4j.getFactory());
+		for (SatAdapterSat4j.FACTORY satFactory : SatAdapterSat4j.FACTORY
+				.values()) {
+			factories.add(SatJustificationComputation.getFactory(satFactory));
+		}
+		for (SatAdapterLogicNG.FACTORY satFactory : SatAdapterLogicNG.FACTORY
+				.values()) {
+			factories.add(SatJustificationComputation.getFactory(satFactory));
+		}
 		return factories;
 	}
 
 	@Parameters(name = "{index}: {0}")
 	public static Iterable<Object[]> data() throws Exception {
-		return getParameters(getRepairEnumeratorFactories(), TEST_INPUT_SUBPKG);
+		return getParameters(getSatJustificationComputationFactories(),
+				TEST_INPUT_SUBPKG);
 	}
 
 }

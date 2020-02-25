@@ -31,19 +31,28 @@ import org.liveontologies.puli.Inference;
 import org.liveontologies.puli.pinpointing.MinimalSubsetsFromProofs;
 
 @RunWith(Parameterized.class)
-public class SatJR_Repair_LogicNgTest<C, I extends Inference<? extends C>, A> extends BaseEnumeratorTest<C, I, A> {
+public class SatJRRepairTest<C, I extends Inference<? extends C>, A>
+		extends BaseEnumeratorTest<C, I, A> {
 
 	public static final String TEST_INPUT_SUBPKG = "input.repairs";
 
-	public static List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> getRepairEnumeratorFactories() {
+	public static List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> getSatJRRepairComputationFactories() {
 		final List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> factories = new ArrayList<MinimalSubsetsFromProofs.Factory<?, ?, ?>>();
-		factories.add(SatJRComp_Repair_LogicNg.getFactory());
+		for (SatAdapterSat4j.FACTORY satFactory : SatAdapterSat4j.FACTORY
+				.values()) {
+			factories.add(SatJRComputation.getRepairFactory(satFactory));
+		}
+		for (SatAdapterLogicNG.FACTORY satFactory : SatAdapterLogicNG.FACTORY
+				.values()) {
+			factories.add(SatJRComputation.getRepairFactory(satFactory));
+		}
 		return factories;
 	}
 
 	@Parameters(name = "{index}: {0}")
 	public static Iterable<Object[]> data() throws Exception {
-		return getParameters(getRepairEnumeratorFactories(), TEST_INPUT_SUBPKG);
+		return getParameters(getSatJRRepairComputationFactories(),
+				TEST_INPUT_SUBPKG);
 	}
 
 }

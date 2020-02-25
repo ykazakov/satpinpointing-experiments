@@ -23,18 +23,15 @@ package com.github.joergschwabe;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
+import org.liveontologies.puli.AssertedConclusionInference;
+import org.liveontologies.puli.BaseProof;
 import org.liveontologies.puli.Inference;
 import org.liveontologies.puli.InferenceJustifier;
 import org.liveontologies.puli.Inferences;
+import org.liveontologies.puli.ModifiableProof;
 import org.liveontologies.puli.Producer;
 import org.liveontologies.puli.Proof;
 import org.liveontologies.puli.Proofs;
@@ -42,84 +39,61 @@ import org.liveontologies.puli.Proofs;
 /**
  * @author Yevgeny Kazakov
  *
- * @param <C> the type of conclusions used in inferences
- * @param <I> the type of inferences used in the proof
- * @param <A> the type of axioms used by the inferences
+ * @param <C>
+ *            the type of conclusions used in inferences
+ * @param <I>
+ *            the type of inferences used in the proof
+ * @param <A>
+ *            the type of axioms used by the inferences
  */
-public class IntegerProofTranslator<C, I extends Inference<? extends C>, A> {
+public class IntegerProofTranslator<C, I extends Inference<? extends C>, A>
+		implements Producer<I> {
 
-	private Proof<? extends I> proof_;
-	private InferenceJustifier<? super I, ? extends Set<? extends A>> justifier_;
-	protected Map<Integer, Collection<Inference<Integer>>> inferences_ = new HashMap<>();
+	private final IdProvider<C> conclusionIds_;
+	private final IdProvider<A> axiomIds_;
+	private final InferenceJustifier<? super I, ? extends Set<? extends A>> justifier_;
+	private final ModifiableProof<Inference<? extends Integer>> result_ = new BaseProof<>();;
 
-	public IntegerProofTranslator(Proof<? extends I> proof,
-			final InferenceJustifier<? super I, ? extends Set<? extends A>> justifier) {
+	IntegerProofTranslator(Proof<? extends I> proof,
+			InferenceJustifier<? super I, ? extends Set<? extends A>> justifier,
+			Object goal, IdProvider<C> conclusionIds, IdProvider<A> axiomIds) {
+		this.conclusionIds_ = conclusionIds;
+		this.axiomIds_ = axiomIds;
 		this.justifier_ = justifier;
-		this.proof_ = proof;
-	}
-
-	Proof<Inference<? extends Integer>> getTranslatedProof(IdProvider<A, I> idProvider, Object query) {
-		return new TranslatedProof(idProvider, query);
-	}
-
-	class TranslatedProof implements Proof<Inference<? extends Integer>>, Producer<I> {
-
-		protected IdProvider<A, I> idProvider_;
-
-		TranslatedProof(IdProvider<A, I> idProvider, Object query) {
-			this.idProvider_ = idProvider;
-			Proofs.unfoldRecursively(proof_, query, this);
-		}
-
-		@Override
-		public void produce(I inference) {
-			// translation to integer inferences
-			C conclusion = inference.getConclusion();
-			List<?> premises = inference.getPremises();
-			Set<? extends A> justifications = justifier_.getJustification(inference);
-			List<Integer> translatedPremises = new ArrayList<Integer>(premises.size() + justifications.size());
-			for (C premise : inference.getPremises()) {
-				translatedPremises.add(idProvider_.getConclusionId(premise));
-			}
-			for (A axiom : justifier_.getJustification(inference)) {
-				translatedPremises.add(idProvider_.getJustificationId(axiom));
-			}
-			int translatedConclusion = idProvider_.getConclusionId(conclusion);
-			Collection<Inference<Integer>> currentInferences = inferences_.get(translatedConclusion);
-			if (currentInferences == null) {
-				currentInferences = new ArrayList<Inference<Integer>>();
-				inferences_.put(translatedConclusion, currentInferences);
-			}
-			Inference<Integer> translatedInference = Inferences.create("Integer Translation", translatedConclusion, translatedPremises);
-			currentInferences.add(translatedInference);
-		}
-
-		@Override
-		public Collection<Inference<Integer>> getInferences(Object conclusion) {
-			return Optional.ofNullable(inferences_.get(conclusion)).orElse(Collections.<Inference<Integer>>emptyList());
-		}
-
-	}
-
-	public Proof<Inference<? extends Integer>> getTranslatedProofDiv(IdProvider<A, I> idProvider) {
-		return new TranslatedProofDiv(idProvider);
-	}
-
-	class TranslatedProofDiv implements Proof<Inference<? extends Integer>> {
-
-		protected IdProvider<A, I> idProvider_;
-
-		TranslatedProofDiv(IdProvider<A, I> idProvider) {
-			this.idProvider_ = idProvider;
-		}
-
-		@Override
-		public Collection<? extends Inference<? extends Integer>> getInferences(Object conclusion) {
-			if(idProvider_.getAxiomIds().contains(conclusion)) {
-				Inference<Integer> inference = Inferences.create("axiom Translation", (Integer) conclusion, new ArrayList<Integer>());
-				return Arrays.asList(inference);
-			}
-			return Optional.ofNullable(inferences_.get(conclusion)).orElse(Collections.<Inference<Integer>>emptyList());
+		Proofs.unfoldRecursively(proof, goal, this);
+		for (int axiomId : axiomIds_.getIds()) {
+			result_.produce(new AssertedConclusionInference<Integer>(axiomId));
 		}
 	}
+
+	public static <C, I extends Inference<? extends C>, A> Proof<Inference<? extends Integer>> translate(
+			Proof<? extends I> proof,
+			InferenceJustifier<? super I, ? extends Set<? extends A>> justifier,
+			Object goal, IdProvider<C> conclusionIds, IdProvider<A> axiomIds) {
+		return new IntegerProofTranslator<C, I, A>(proof, justifier, goal,
+				conclusionIds, axiomIds).result_;
+	}
+
+	@Override
+	public void produce(I inference) {
+		// translation to integer inferences
+		C conclusion = inference.getConclusion();
+		List<?> premises = inference.getPremises();
+		Set<? extends A> justifications = justifier_
+				.getJustification(inference);
+		List<Integer> translatedPremises = new ArrayList<Integer>(
+				premises.size() + justifications.size());
+		for (C premise : inference.getPremises()) {
+			translatedPremises.add(conclusionIds_.getId(premise));
+		}
+		for (A axiom : justifier_.getJustification(inference)) {
+			translatedPremises.add(axiomIds_.getId(axiom));
+		}
+		int translatedConclusion = conclusionIds_.getId(conclusion);
+		Inference<Integer> translatedInference = Inferences.create(
+				"Integer Translation", translatedConclusion,
+				translatedPremises);
+		result_.produce(translatedInference);
+	}
+
 }

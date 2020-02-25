@@ -16,7 +16,7 @@
 			<AppenderRef ref="stderr" />
 		</Root>
 		<Logger name="org.semanticweb.elk.reasoner" level="warn" />
-		<Logger name="org.semanticweb.elk.reasoner.stages.AbstractReasonerStage" level="info" />
-		<Logger name="org.semanticweb.elk.reasoner.tracing.TraceState" level="info" />
+		<!-- <Logger name="org.semanticweb.elk.reasoner.stages.AbstractReasonerStage" level="info" />
+		<Logger name="org.semanticweb.elk.reasoner.tracing.TraceState" level="info" /> -->
 	</Loggers>
 </Configuration>

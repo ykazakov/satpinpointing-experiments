@@ -31,13 +31,21 @@ import org.liveontologies.puli.Inference;
 import org.liveontologies.puli.pinpointing.MinimalSubsetsFromProofs;
 
 @RunWith(Parameterized.class)
-public class SatJR_Repair_Sat4jTest<C, I extends Inference<? extends C>, A> extends BaseEnumeratorTest<C, I, A> {
+public class SatRepairTest<C, I extends Inference<? extends C>, A>
+		extends BaseEnumeratorTest<C, I, A> {
 
 	public static final String TEST_INPUT_SUBPKG = "input.repairs";
 
 	public static List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> getRepairEnumeratorFactories() {
 		final List<MinimalSubsetsFromProofs.Factory<?, ?, ?>> factories = new ArrayList<MinimalSubsetsFromProofs.Factory<?, ?, ?>>();
-		factories.add(SatJRComp_Repair_Sat4j.getFactory());
+		for (SatAdapterSat4j.FACTORY satFactory : SatAdapterSat4j.FACTORY
+				.values()) {
+			factories.add(SatRepairComputation.getFactory(satFactory));
+		}
+		for (SatAdapterLogicNG.FACTORY satFactory : SatAdapterLogicNG.FACTORY
+				.values()) {
+			factories.add(SatRepairComputation.getFactory(satFactory));
+		}
 		return factories;
 	}
 
